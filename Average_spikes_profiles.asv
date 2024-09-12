@@ -1,0 +1,96 @@
+function [profiles] = Average_spikes_profiles(RootPath, bool, chan)
+%UNTITLED3 Summary of this function goes here
+%   Detailed explanation goes here
+
+
+    if contains(RootPath{1}(end), "\") == false
+        RootPath = strcat(RootPath, "\");
+    end
+
+    chan_ARR = load(RootPath + "FilteredCAR_arr").chan_ARR;
+    spikes = load(RootPath + "spikes_arr").spikes(6,:);
+
+    arr = chan_ARR(chan,:); %Hardcoding in to use channel six to start
+
+    time_series = (length(spikes) / 20000) * 1E3;
+
+    
+
+    % Sep_bins = NaN(10,ceil(length(spikes)/200));    % Save values of all tests
+
+    if lower(bool) == true
+        figure;
+
+        for i = 200:200:2000   % 200 recordings per 10ms window so 2000 in 100ms which is our range 
+        
+            %spike_set = NaN(i, ceil(length(spikes)/i)); % avoid losing leftover bin space
+            
+            temp_spikes = [spikes, NaN(1,i-mod(length(spikes), i))]; %reshape so that spikes has extra room to accomodate dividing by i 
+            
+            spike_set = reshape(temp_spikes, [], i);
+    
+            spike_sums = sum(spike_set, 2);
+            spike_avgs = (spike_sums/(i/200)*10); %Gives in units spikes/ms
+    
+    
+            % binIndices = discretize(spikes, i); % Indexes of all the bins
+            % 
+            % binAVGS = splitapply(@mean, spikes, binIndices);
+            % 
+            % Sep_bins(i/200) = binAVGS/20000;
+    
+           
+            subplot(2,5,i/200);
+    
+            title("BIN size " + i);
+    
+            plot(1:length(spike_avgs), spike_avgs);  % Time in milliseconds is length of all channel data * init_time frame / init bin_size
+    
+            % Sep_bins(i/200,:) = spike_avgs;
+        end
+
+    elseif lower(bool) == false
+        figure;
+        
+            % Stepwise averaging for smoother curve of average
+        
+        for i = 200:200:2000   % 200 recordings per 10ms window so 2000 in 100ms which is our range 
+            
+           
+            temp_spikes = [spikes, NaN(1,i-mod(length(spikes), i))];
+            spike_avgs = NaN(1,(length(temp_spikes)/i) - i); 
+
+    
+            for j = 1:length(temp_spikes)-i
+                
+                spike_avgs(j) = sum(temp_spikes(j:j+i))/((i/200)*10);
+                %Phils version 1
+
+                %tempWindow = temp_spikes(j:j+i);
+                %tempWindow(isnan(tempWindow)) = [];
+                %spike_avgs(j) = sum(temp_spikes(j:j+i))/((i/200)*10);
+
+                %Alt version
+                spike_avgs(j) = nanmean(temp_spikes(j:j+1));
+                
+            
+            end
+           
+            subplot(2,5,i/200);
+    
+            subtitle("Spike Avg. Across " + (i/200)*10 + "ms");
+            hold on 
+            plot(1:length(spike_avgs), spike_avgs);  % Right now just graphing across number of points but could convert to time 
+            hold off
+            % Sep_bins(i/200,:) = spike_avgs;
+        end
+
+
+    else
+        print("Invalid Input to Function must be bool: true | false")
+    end
+
+   
+
+
+   
